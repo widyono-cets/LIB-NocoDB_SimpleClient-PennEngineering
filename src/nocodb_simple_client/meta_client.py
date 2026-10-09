@@ -27,6 +27,7 @@ from typing import Any
 
 from .client import NocoDBClient
 from .config import NocoDBConfig
+from .exceptions import ValidationException
 
 
 class NocoDBMetaClient(NocoDBClient):
@@ -294,6 +295,26 @@ class NocoDBMetaClient(NocoDBClient):
         """
         return { base["title"]:base for base in self.list_bases(workspace_id) }
 
+    def get_base_id(self, base_title: str, workspace_id: str | None = None) -> str:
+        """Get base_id of base with title of base_title.
+
+        Args:
+            base_title: Base title
+            workspace_id: Optional workspace.
+
+        Returns:
+            Base ID
+
+        Raises:
+            NocoDBException: For API errors
+            ValidationException: If base_title is invalid
+        """
+        for base in self.list_bases(workspace_id):
+            if base["title"] == base_title:
+                return base["id"]
+
+        raise ValidationException(f"Invalid Base Title: {base_title}")
+
     def get_base(self, base_id: str) -> dict[str, Any]:
         """Get detailed information about a specific base.
 
@@ -447,6 +468,26 @@ class NocoDBMetaClient(NocoDBClient):
                     field_record["title"]:field_record for field_record in table_record["views"]
                     }
         return table_schema
+
+    def get_table_id(self, table_title: str, base_id: str) -> str:
+        """Get table_id of table with title of table_title.
+
+        Args:
+            table_title: Table title
+            base_id: Base ID
+
+        Returns:
+            Table ID
+
+        Raises:
+            NocoDBException: For API errors
+            ValidationException: If table_title is invalid
+        """
+        for table in self.list_tables(base_id):
+            if table["title"] == table_title:
+                return table["id"]
+
+        raise ValidationException(f"Invalid Table Title: {table_title}")
 
     def get_table_info(self, table_id: str, base_id: str | None = None) -> dict[str, Any]:
         """Get table metadata information.
