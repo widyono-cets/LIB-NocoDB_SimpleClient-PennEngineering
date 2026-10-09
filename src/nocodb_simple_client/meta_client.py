@@ -105,6 +105,17 @@ class NocoDBMetaClient(NocoDBClient):
         workspace_list = response.get("list", [])
         return workspace_list if isinstance(workspace_list, list) else []
 
+    def get_workspace_schema(self) -> dict[str, Any]:
+        """Get workspace schema.
+
+        Returns:
+            Dict of workspace metadata with workspace names as keys.
+
+        Raises:
+            NocoDBException: For API errors
+        """
+        return { workspace["title"]:workspace for workspace in self.list_workspaces() }
+
     def get_workspace(self, workspace_id: str) -> dict[str, Any]:
         """Get detailed information about a specific workspace.
 
@@ -269,6 +280,20 @@ class NocoDBMetaClient(NocoDBClient):
             bases.extend(_bases(self._get(endpoint)))
         return bases
 
+    def get_base_schema(self, workspace_id: str | None = None) -> dict[str, Any]:
+        """Get base schema.
+
+        Args:
+            workspace_id: Optional workspace to scope the listing to.
+
+        Returns:
+            Dict of base metadata with base names as keys.
+
+        Raises:
+            NocoDBException: For API errors
+        """
+        return { base["title"]:base for base in self.list_bases(workspace_id) }
+
     def get_base(self, base_id: str) -> dict[str, Any]:
         """Get detailed information about a specific base.
 
@@ -392,6 +417,36 @@ class NocoDBMetaClient(NocoDBClient):
         response = self._get(endpoint)
         table_list = response.get("list", [])
         return table_list if isinstance(table_list, list) else []
+
+    def get_table_schema(self, base_id: str) -> dict[str, Any]:
+        """Get table schema.
+
+        Args:
+            base_id: The base ID
+
+        Returns:
+            Dict of table metadata with table names as keys.
+
+        Raises:
+            NocoDBException: For API errors
+            ValidationException: If base_id is invalid
+        """
+        table_schema = {}
+        for table in self.list_tables(base_id):
+            table_record = self.get_table_info(table_id=table["id"])
+            table_title=table["title"]
+            table_schema[table_title] = {
+                k:v for k,v in table_record.items() if k not in ["views","fields"]
+                }
+            if "fields" in table_record:
+                table_schema[table_title]["fields"] = {
+                    field_record["title"]:field_record for field_record in table_record["fields"]
+                    }
+            if "views" in table_record:
+                table_schema[table_title]["views"] = {
+                    field_record["title"]:field_record for field_record in table_record["views"]
+                    }
+        return table_schema
 
     def get_table_info(self, table_id: str, base_id: str | None = None) -> dict[str, Any]:
         """Get table metadata information.
