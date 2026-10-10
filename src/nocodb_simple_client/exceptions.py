@@ -119,11 +119,19 @@ class NetworkException(NocoDBException):
         self.original_error = original_error
 
 
+class BaseNotFoundException(NocoDBException):
+    """Exception raised when a base is not found."""
+
+    def __init__(self, message: str = "Base not found: ", base_id: str | None = None):
+        super().__init__("BASE_NOT_FOUND", message + base_id, status_code=404)
+        self.base_id = base_id
+
+
 class TableNotFoundException(NocoDBException):
     """Exception raised when a table is not found."""
 
-    def __init__(self, message: str = "Table not found", table_id: str | None = None):
-        super().__init__("TABLE_NOT_FOUND", message, status_code=404)
+    def __init__(self, message: str = "Table not found: ", table_id: str | None = None):
+        super().__init__("TABLE_NOT_FOUND", message + table_id, status_code=404)
         self.table_id = table_id
 
 

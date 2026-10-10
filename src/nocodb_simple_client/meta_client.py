@@ -27,7 +27,7 @@ from typing import Any
 
 from .client import NocoDBClient
 from .config import NocoDBConfig
-from .exceptions import ValidationException
+from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException
 
 
 class NocoDBMetaClient(NocoDBClient):
@@ -106,7 +106,7 @@ class NocoDBMetaClient(NocoDBClient):
         workspace_list = response.get("list", [])
         return workspace_list if isinstance(workspace_list, list) else []
 
-    def get_workspace_schema(self) -> dict[str, Any]:
+    def get_workspace_schemas(self) -> dict[str, Any]:
         """Get workspace schema.
 
         Returns:
@@ -281,7 +281,7 @@ class NocoDBMetaClient(NocoDBClient):
             bases.extend(_bases(self._get(endpoint)))
         return bases
 
-    def get_base_schema(self, workspace_id: str | None = None) -> dict[str, Any]:
+    def get_base_schemas(self, workspace_id: str | None = None) -> dict[str, Any]:
         """Get base schema.
 
         Args:
@@ -307,13 +307,13 @@ class NocoDBMetaClient(NocoDBClient):
 
         Raises:
             NocoDBException: For API errors
-            ValidationException: If base_title is invalid
+            BaseNotFoundException: If base_title is invalid
         """
         for base in self.list_bases(workspace_id):
             if base["title"] == base_title:
                 return base["id"]
 
-        raise ValidationException(f"Invalid Base Title: {base_title}")
+        raise BaseNotFoundException(base_id=base_title)
 
     def get_base(self, base_id: str) -> dict[str, Any]:
         """Get detailed information about a specific base.
@@ -439,7 +439,7 @@ class NocoDBMetaClient(NocoDBClient):
         table_list = response.get("list", [])
         return table_list if isinstance(table_list, list) else []
 
-    def get_table_schema(self, base_id: str) -> dict[str, Any]:
+    def get_table_schemas(self, base_id: str) -> dict[str, Any]:
         """Get table schema.
 
         Args:
@@ -452,22 +452,22 @@ class NocoDBMetaClient(NocoDBClient):
             NocoDBException: For API errors
             ValidationException: If base_id is invalid
         """
-        table_schema = {}
+        table_schemas = {}
         for table in self.list_tables(base_id):
             table_record = self.get_table_info(table_id=table["id"])
             table_title=table["title"]
-            table_schema[table_title] = {
+            table_schemas[table_title] = {
                 k:v for k,v in table_record.items() if k not in ["views","fields"]
                 }
             if "fields" in table_record:
-                table_schema[table_title]["fields"] = {
+                table_schemas[table_title]["fields"] = {
                     field_record["title"]:field_record for field_record in table_record["fields"]
                     }
             if "views" in table_record:
-                table_schema[table_title]["views"] = {
+                table_schemas[table_title]["views"] = {
                     field_record["title"]:field_record for field_record in table_record["views"]
                     }
-        return table_schema
+        return table_schemas
 
     def get_table_id(self, table_title: str, base_id: str) -> str:
         """Get table_id of table with title of table_title.
@@ -481,13 +481,13 @@ class NocoDBMetaClient(NocoDBClient):
 
         Raises:
             NocoDBException: For API errors
-            ValidationException: If table_title is invalid
+            TableNotFoundException: If table_title is invalid
         """
         for table in self.list_tables(base_id):
             if table["title"] == table_title:
                 return table["id"]
 
-        raise ValidationException(f"Invalid Table Title: {table_title}")
+        raise TableNotFoundException(table_id=table_title)
 
     def get_table_info(self, table_id: str, base_id: str | None = None) -> dict[str, Any]:
         """Get table metadata information.
