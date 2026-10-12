@@ -96,6 +96,7 @@ class NocoDBClient:
         timeout: int | None = None,
         config: "NocoDBConfig | None" = None,
         api_version: str = "v2",
+        nocodb_licensed: bool = False,
         base_id: str | None = None,
     ) -> None:
         from .config import NocoDBConfig  # Import here to avoid circular import
@@ -155,6 +156,7 @@ class NocoDBClient:
 
         # API version support
         self.api_version = APIVersion(api_version)
+        self.nocodb_licensed = nocodb_licensed
         self.base_id = base_id
         self._path_builder = PathBuilder(self.api_version)
         self._param_adapter = QueryParamAdapter()

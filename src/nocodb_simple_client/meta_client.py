@@ -27,7 +27,9 @@ from typing import Any
 
 from .client import NocoDBClient
 from .config import NocoDBConfig
-from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException
+from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException, ServerErrorException
+
+import uuid
 
 
 class NocoDBMetaClient(NocoDBClient):
@@ -79,6 +81,16 @@ class NocoDBMetaClient(NocoDBClient):
             **kwargs: Alternative way to pass config parameters
         """
         super().__init__(config=config, **kwargs)
+
+        if self.nocodb_licensed is None:
+            workspace_title_tmp = "nocodb_license_test_{str(uuid.uuid4().hex)}"
+            try:
+                result = self._post(endpoint="api/v3/meta/workspaces",data={"title":workspace_title_tmp})
+            except ServerErrorException, ValidationException:
+                self.nocodb_licensed = False
+            else:
+                self.nocodb_licensed = True
+                self._delete(endpoint=f"api/v3/meta/workspaces/{result['id']}")
 
     # ========================================================================
     # WORKSPACE OPERATIONS (Meta API)
@@ -632,10 +644,17 @@ class NocoDBMetaClient(NocoDBClient):
         if self.api_version == APIVersion.V3:
             resolved_base_id = self._resolve_base_id(table_id, base_id)
 
-        endpoint = self._path_builder.columns_create(table_id, resolved_base_id)
-        response = self._get(endpoint)
-        column_list = response.get("list", [])
-        return column_list if isinstance(column_list, list) else []
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.columns_create(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            column_list = response.get("list", [])
+            return column_list if isinstance(column_list, list) else []
+        else:
+            # community
+            endpoint = self._path_builder.table_get_meta(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            return response.get("fields", []) if isinstance(response, dict) else []
 
     def create_column(
         self, table_id: str, column_data: dict[str, Any], base_id: str | None = None
