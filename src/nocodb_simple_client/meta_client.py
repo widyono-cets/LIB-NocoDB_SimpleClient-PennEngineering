@@ -27,7 +27,7 @@ from typing import Any
 
 from .client import NocoDBClient
 from .config import NocoDBConfig
-from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException, ServerErrorException
+from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException, ServerErrorException, ColumnNotFoundException
 
 import uuid
 
@@ -655,6 +655,34 @@ class NocoDBMetaClient(NocoDBClient):
             endpoint = self._path_builder.table_get_meta(table_id, resolved_base_id)
             response = self._get(endpoint)
             return response.get("fields", []) if isinstance(response, dict) else []
+
+    def get_column(
+        self, table_id: str, column_data: dict[str, Any], base_id: str | None = None
+    ) -> dict[str, Any]:
+        """Get a column.
+        """
+        # Resolve base_id for v3
+        from .api_version import APIVersion
+
+        resolved_base_id = None
+        if self.api_version == APIVersion.V3:
+            resolved_base_id = self._resolve_base_id(table_id, base_id)
+
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.column_get(column_id, resolved_base_id)
+            response = self._get(endpoint)
+            return resopnse
+        else:
+            # community
+            endpoint = self._path_builder.table_get_meta(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            if isinstance(response, dict):
+                found_column = next((i for i in response.get("fields", []) if i.get("title") == column_data["title"]), None)
+                if found_column is not None:
+                    return found_column
+
+            raise ColumnNotFoundException(column_id = column_data["title"])
 
     def create_column(
         self, table_id: str, column_data: dict[str, Any], base_id: str | None = None
