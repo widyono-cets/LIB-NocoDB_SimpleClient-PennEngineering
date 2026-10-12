@@ -812,10 +812,15 @@ class NocoDBMetaClient(NocoDBClient):
         if self.api_version == APIVersion.V3:
             resolved_base_id = self._resolve_base_id(table_id, base_id)
 
-        endpoint = self._path_builder.views_list(table_id, resolved_base_id)
-        response = self._get(endpoint)
-        view_list = response.get("list", [])
-        return view_list if isinstance(view_list, list) else []
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.views_list(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            view_list = response.get("list", [])
+            return view_list if isinstance(view_list, list) else []
+        else:
+            # community
+            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
 
     def get_view(self, view_id: str, base_id: str | None = None) -> dict[str, Any]:
         """Get detailed view metadata.
@@ -841,8 +846,13 @@ class NocoDBMetaClient(NocoDBClient):
                 raise ValueError("base_id is required for API v3 view operations")
             resolved_base_id = base_id or self.base_id
 
-        endpoint = self._path_builder.view_get(view_id, resolved_base_id)
-        return self._get(endpoint)
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.view_get(view_id, resolved_base_id)
+            return self._get(endpoint)
+        else:
+            # community
+            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
 
     def create_view(
         self, table_id: str, view_data: dict[str, Any], base_id: str | None = None
@@ -878,9 +888,14 @@ class NocoDBMetaClient(NocoDBClient):
         if self.api_version == APIVersion.V3:
             resolved_base_id = self._resolve_base_id(table_id, base_id)
 
-        endpoint = self._path_builder.views_list(table_id, resolved_base_id)
-        result = self._post(endpoint, data=view_data)
-        return result if isinstance(result, dict) else {"data": result}
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.views_list(table_id, resolved_base_id)
+            result = self._post(endpoint, data=view_data)
+            return result if isinstance(result, dict) else {"data": result}
+        else:
+            # community
+            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
 
     def update_view(
         self, view_id: str, view_data: dict[str, Any], base_id: str | None = None
@@ -909,9 +924,14 @@ class NocoDBMetaClient(NocoDBClient):
                 raise ValueError("base_id is required for API v3 view operations")
             resolved_base_id = base_id or self.base_id
 
-        endpoint = self._path_builder.view_get(view_id, resolved_base_id)
-        result = self._patch(endpoint, data=view_data)
-        return result if isinstance(result, dict) else {"data": result}
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.view_get(view_id, resolved_base_id)
+            result = self._patch(endpoint, data=view_data)
+            return result if isinstance(result, dict) else {"data": result}
+        else:
+            # community
+            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
 
     def delete_view(self, view_id: str, base_id: str | None = None) -> dict[str, Any]:
         """Delete a view.
@@ -937,9 +957,14 @@ class NocoDBMetaClient(NocoDBClient):
                 raise ValueError("base_id is required for API v3 view operations")
             resolved_base_id = base_id or self.base_id
 
-        endpoint = self._path_builder.view_get(view_id, resolved_base_id)
-        result = self._delete(endpoint)
-        return result if isinstance(result, dict) else {"data": result}
+        if self.nocodb_licensed:
+            # business, enterprise
+            endpoint = self._path_builder.view_get(view_id, resolved_base_id)
+            result = self._delete(endpoint)
+            return result if isinstance(result, dict) else {"data": result}
+        else:
+            # community
+            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
 
     # ========================================================================
     # WEBHOOK OPERATIONS (Meta API)
