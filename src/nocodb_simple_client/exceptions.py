@@ -135,6 +135,14 @@ class TableNotFoundException(NocoDBException):
         self.table_id = table_id
 
 
+class ColumnNotFoundException(NocoDBException):
+    """Exception raised when a column is not found."""
+
+    def __init__(self, message: str = "Column not found", column_id: str | None = None):
+        super().__init__("COLUMN_NOT_FOUND", message + column_id, status_code=404)
+        self.column_id = column_id
+
+
 class FileUploadException(NocoDBException):
     """Exception raised when file upload fails."""
 
