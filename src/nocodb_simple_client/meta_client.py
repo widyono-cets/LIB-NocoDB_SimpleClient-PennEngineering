@@ -27,7 +27,7 @@ from typing import Any
 
 from .client import NocoDBClient
 from .config import NocoDBConfig
-from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException, ServerErrorException, ColumnNotFoundException
+from .exceptions import ValidationException, BaseNotFoundException, TableNotFoundException, ServerErrorException, ColumnNotFoundException, NocoDBException, ViewNotFoundException
 
 import uuid
 
@@ -681,7 +681,6 @@ class NocoDBMetaClient(NocoDBClient):
                 found_column = next((i for i in response.get("fields", []) if i.get("title") == column_data["title"]), None)
                 if found_column is not None:
                     return found_column
-
             raise ColumnNotFoundException(column_id = column_data["title"])
 
     def create_column(
@@ -789,7 +788,9 @@ class NocoDBMetaClient(NocoDBClient):
     # VIEW OPERATIONS (Meta API)
     # ========================================================================
 
-    def list_views(self, table_id: str, base_id: str | None = None) -> list[dict[str, Any]]:
+    def list_views(
+        self, table_id: str, base_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """List all views for a table.
 
         Supports both API v2 and v3.
@@ -820,9 +821,13 @@ class NocoDBMetaClient(NocoDBClient):
             return view_list if isinstance(view_list, list) else []
         else:
             # community
-            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
+            endpoint = self._path_builder.table_get_meta(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            return response.get("views", []) if isinstance(response, dict) else []
 
-    def get_view(self, view_id: str, base_id: str | None = None) -> dict[str, Any]:
+    def get_view(
+        self, view_id: str, base_id: str | None = None, table_id: str | None = None
+    ) -> dict[str, Any]:
         """Get detailed view metadata.
 
         Supports both API v2 and v3.
@@ -830,6 +835,7 @@ class NocoDBMetaClient(NocoDBClient):
         Args:
             view_id: The view ID
             base_id: Base ID (required for v3, optional for v2)
+            table_id: Table ID (required for community license, optional otherwise)
 
         Returns:
             View metadata including filters, sorts, column configuration
@@ -852,7 +858,13 @@ class NocoDBMetaClient(NocoDBClient):
             return self._get(endpoint)
         else:
             # community
-            raise NocoDBException(error="ERR_LICENSE_REQUIRED", message='This instance does not have an active NocoDB license, so "feature_api_view_v3" is unavailable. No license key is configured on this instance.', status_code=402)
+            endpoint = self._path_builder.table_get_meta(table_id, resolved_base_id)
+            response = self._get(endpoint)
+            if isinstance(response, dict):
+                found_view = next((i for i in response.get("views", []) if i.get("title") == view_id), None)
+                if found_view is not None:
+                    return found_view
+            raise ViewNotFoundException(view_id = view_id)
 
     def create_view(
         self, table_id: str, view_data: dict[str, Any], base_id: str | None = None

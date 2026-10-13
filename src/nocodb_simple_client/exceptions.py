@@ -138,9 +138,17 @@ class TableNotFoundException(NocoDBException):
 class ColumnNotFoundException(NocoDBException):
     """Exception raised when a column is not found."""
 
-    def __init__(self, message: str = "Column not found", column_id: str | None = None):
+    def __init__(self, message: str = "Column not found: ", column_id: str | None = None):
         super().__init__("COLUMN_NOT_FOUND", message + column_id, status_code=404)
         self.column_id = column_id
+
+
+class ViewNotFoundException(NocoDBException):
+    """Exception raised when a view is not found."""
+
+    def __init__(self, message: str = "View not found: ", view_id: str | None = None):
+        super().__init__("VIEW_NOT_FOUND", message + view_id, status_code=404)
+        self.view_id = view_id
 
 
 class FileUploadException(NocoDBException):
